@@ -45,7 +45,7 @@
 
 import pandas as pd
 import numpy as np
-a = pd.read_pickle(r"C:\Users\solpr\Desktop\Projects\CNN_PAML_SEM_4\face_data.pkl")
+a = pd.read_pickle(r"C:\Users\solpr\Desktop\Projects\CNN_PAML_SEM_4\face_master_data.pkl")
 with np.printoptions(threshold=np.inf):
     b = np.array(a["Id"].to_list())
     print(b,np.size(b))

@@ -55,7 +55,7 @@ def live_face_capture_id(name :str):
 
 # Now load the network
 
-def image_face_capture_id(directory_path,output_dir,target_size=(224, 224), confidence_threshold=0.5, master_data: bool):
+def image_face_capture_id(directory_path,output_dir, master_data: bool,target_size=(224, 224), confidence_threshold=0.5):
     face_matrix = []
     name_list = []
 
@@ -119,7 +119,6 @@ def image_face_capture_id(directory_path,output_dir,target_size=(224, 224), conf
 
     logging.warning("All files processed.")
     if master_data == True:                
-        return [pd.DataFrame({"Name" :name_list,
-                         "Id" :list(face_matrix)}),True]
+        return (pd.DataFrame({"Name" :name_list,"Id" :face_matrix}),True)
     else:
-        return [pd.DataFrame({"Id" :list(face_matrix)}),False]
+        return (pd.DataFrame({"Id" :face_matrix}),False)

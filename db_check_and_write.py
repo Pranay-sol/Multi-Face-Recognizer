@@ -7,22 +7,23 @@ from cam_test import live_face_capture_id, image_face_capture_id
 
 def name_check_in_db(file_path: str,op):
     new_file = op[0]
-    master = a[1]
+    master = op[1]
     try:
         df = pd.read_csv(file_path)
         logging.warning("Database Found, checking for duplicate.")
         if file_path == "./face_master_data.pkl":
             if name.lower() in df['Name'].str.lower():
                 logging.warning('Duplicate Name.')
-        df = pd.concat([df, a[0]], ignore_index= True)
+        df = pd.concat([df, op[0]], ignore_index= True)
             
     except:
         logging.warning("no pre-existing Database, creating new.")
-        df = a[0]
+        df = op[0]
         
     logging.warning(f"File sucessfully saved at {file_path}")
     return df.to_pickle(file_path)
 
-name_check_in_db(file_path = "./face_master_data.pkl",image_face_capture_id("./temp_images","./face_crop",master_data=True))
-name_check_in_db(file_path = "./face_data.pkl",image_face_capture_id("./temp_images","./face_crop", master_data= False))
+x = image_face_capture_id( "./temp_images","./face_crop",master_data=True)
+name_check_in_db(file_path = "./face_master_data.pkl",op = x)
+#name_check_in_db(file_path = "./face_data.pkl",image_face_capture_id("./temp_images","./face_crop", master_data= False))
 
