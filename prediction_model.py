@@ -3,47 +3,53 @@ import pandas as pd
 import numpy as np
 from scipy.spatial.distance import euclidean
 import logging
+import cv2
+from cam_test import identify_faces, convert_to_tensor
+from scipy.optimize import linear_sum_assignment
 
-#Load the trained Encoder
-encoder = load_model("face_encoder_v1")
+#Load the trained model
+final_model = load_model("face_recognition_model.h5")
 
-#Load your Master Gallery (The Pickle file)
-df_master = pd.read_pickle("face_data_master.pkl")
+def predict_face(model, image_matrix_df):
+    name_idx = []
+    predict_matrix = []
+    for i in image_matrix_df:
+        face_batch = np.expand_dims(i, axis=0)
 
-# Pre-calculate the "Database Fingerprints" 
-# (You only do this once at startup)
-database_embeddings = encoder.predict(np.stack(df_master['Id'].values))
-database_names = df_master['Name'].values
+        # 3. Predict
+        prediction = model.predict(face_batch)
 
-def identify_face(face_matrix, threshold=0.6):
-    """
-    face_matrix: a single (224, 224, 3) normalized image
-    """
-    # 1. Expand dimensions to (1, 224, 224, 3) for the CNN
-    face_input = np.expand_dims(face_matrix, axis=0)
+        # 4. Get the index of the highest score
+        idx = np.argmax(prediction)
+        name_idx.append(idx)
+        predict_matrix.append(prediction)
+    return name_idx, predict_matrix
+
+def best_estimate_for_face(predictions):
+    pred_array = np.array(predictions)
     
-    # 2. Generate the unique fingerprint
-    query_embedding = encoder.predict(face_input)[0]
+    pred_matrix = np.squeeze(pred_array)
+    if pred_matrix.ndim == 1:
+        pred_matrix = pred_matrix.reshape(1, -1)
     
-    # 3. Find the closest match in your gallery
-    distances = [euclidean(query_embedding, db_emb) for db_emb in database_embeddings]
-    min_dist_idx = np.argmin(distances)
-    
-    if distances[min_dist_idx] < threshold:
-        return database_names[min_dist_idx], distances[min_dist_idx]
-    else:
-        return "Unknown", distances[min_dist_idx]
-    
+    row_ind,name_indices = linear_sum_assignment(-pred_matrix)
+    detected_names = get_names(name_indices)    
+    return detected_names
 
-def face_detection(data_file_path :str, attendance_file_path: str):
-    attendance = []
-    pred_file = pd.read_pickle(file_path)
-    # 2. Loop through crops and identify
-    for crop in pred_file.Id:
-        name, score = identify_face(crop)
-        attendance.append(name)
-        logging.warning(f"Detected: {name} (Distance: {score:.4f})")
+def get_names(name_idx):
+    mapping_df = pd.read_csv(r".\label_mapping.csv")
+    name_lookup = mapping_df.set_index(mapping_df.columns[0])['Name'].to_dict()
+    mapped_names = [name_lookup.get(i, "Unknown") for i in name_idx]
     
-    pd.to_csv(f"{attendance_file_path}/attendance_list.csv")
+    return mapped_names
 
-face_detection("./face_data.pkl", "./")
+if __name__ == "__main__":
+    image = cv2.imread(r".\temp_images\WhatsApp Image 2026-03-19 at 7.57.10 PM.jpeg")    
+        
+    detection = identify_faces(image)
+    df = convert_to_tensor(image, detection)
+    model = final_model
+    x,predict = predict_face(model, df.iloc[:,0])
+    a = best_estimate_for_face(predict)
+    print(a)    
+    
